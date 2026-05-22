@@ -1,0 +1,9 @@
+{
+  "name": "Astramon",
+  "short_name": "Astra",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#87CEEB",
+  "theme_color": "#22C55E",
+  "description": "Astramon is a bright 16-bit Solana card summon and NFT collection interface."
+}

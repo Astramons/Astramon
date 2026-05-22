@@ -1,0 +1,28 @@
+.DS_Store
+Thumbs.db
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.env
+.env.*
+astramon.config.js
+astramon.config.local.js
+dist/
+build/
+coverage/
+
+# Local prototypes and legacy files that are not part of the public Astramon site.
+/pokemon-trainer.html
+/script.js
+/styles.css
+/api/wallet.json
+
+# Uploaded archives and extracted scratch folders.
+*.zip
+*.7z
+*.rar
+*.tar
+*.gz
+/assets/nft-cards/1-53/

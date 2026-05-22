@@ -1,0 +1,29 @@
+{
+  "name": "astramon",
+  "version": "0.1.0",
+  "description": "Astramon is a bright 16-bit Solana card summon, NFT collection, and marketplace interface powered by the Astra token.",
+  "private": true,
+  "license": "UNLICENSED",
+  "homepage": "https://astramon.fun",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Astramons/Astramon.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Astramons/Astramon/issues"
+  },
+  "scripts": {
+    "validate": "node scripts/validate-site.mjs"
+  },
+  "keywords": [
+    "astramon",
+    "astra",
+    "solana",
+    "nft",
+    "pixel-art",
+    "web3"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
+}
