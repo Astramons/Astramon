@@ -9690,6 +9690,17 @@
         `;
       }
 
+      function watchMarketCardImages(grid) {
+        grid.querySelectorAll(".nft-card-slot").forEach((slot) => {
+          const imageNode = slot.querySelector(".nft-card-image");
+          if (!imageNode) return;
+          window.setTimeout(() => {
+            if (!slot.isConnected || imageNode.complete) return;
+            removeUnavailableMarketCard(imageNode);
+          }, 4500);
+        });
+      }
+
       function scheduleMarketRerender() {
         if (!document.getElementById("marketGrid")) return;
         window.clearTimeout(marketRerenderTimer);
@@ -9719,6 +9730,7 @@
         grid.innerHTML = visibleCards.length
           ? renderedCards.map(({ card, index }, visibleIndex) => marketCardMarkup(card, index, visibleIndex)).join("")
           : `<div class="market-empty pixel-panel pixel-wood pixel-font">NO ${normalized} CARDS</div>`;
+        watchMarketCardImages(grid);
         const status = document.getElementById("marketFilterStatus");
         if (status) {
           status.textContent = `${normalized} · ${Math.min(renderedCards.length, visibleCards.length)} / ${visibleCards.length} CARDS`;
