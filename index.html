@@ -8598,7 +8598,6 @@
       const NFT_IMAGE_BASE_URL = readConfigString("nftImageBaseUrl", "https://pub-b3acfc620a4846df963fba9e466f6c45.r2.dev/nft-cards");
       const NFT_CARD_PLACEHOLDER = "./assets/nft-front-placeholder.svg";
       const NFT_MANIFEST_URL = readConfigString("nftManifestUrl", "./data/nft-manifest.json");
-      const NFT_FRONT_FALLBACK_FILES = ["product-001.JPG", "product-002.JPG", "product-003.JPG", "product-004.JPG", "product-005.JPG", "product-006.JPG"];
 
       function uniqueList(values) {
         return values.filter((value, index, list) => value && list.indexOf(value) === index);
@@ -8613,10 +8612,19 @@
       }
 
       function nftFileNameVariants(fileName) {
+        const normalizedName = String(fileName || "");
+        const match = normalizedName.match(/^(.*?)(\d+)(\.[^.]+)$/);
+        const numericVariants = match
+          ? [
+              `${match[1]}${Number(match[2])}${match[3]}`,
+              `${match[1]}${String(Number(match[2])).padStart(3, "0")}${match[3]}`,
+              `${match[1]}${String(Number(match[2])).padStart(4, "0")}${match[3]}`
+            ]
+          : [normalizedName];
         return uniqueList([
-          fileName,
-          fileName.replace(/\.JPG$/i, ".jpg"),
-          fileName.replace(/\.jpg$/i, ".JPG")
+          ...numericVariants,
+          ...numericVariants.map((name) => name.replace(/\.JPG$/i, ".jpg")),
+          ...numericVariants.map((name) => name.replace(/\.jpg$/i, ".JPG"))
         ]);
       }
 
@@ -8632,11 +8640,6 @@
           `${root}/assets/nft-cards`
         ]);
         return uniqueList(folders.flatMap((folder) => nftFileNameVariants(fileName).map((name) => `${folder}/${name}`)));
-      }
-
-      function getNftFrontFallbackCandidates(fileName) {
-        const fallbackFiles = NFT_FRONT_FALLBACK_FILES.filter((name) => name !== fileName);
-        return uniqueList(fallbackFiles.flatMap(getNftImageCandidates).concat(NFT_CARD_PLACEHOLDER));
       }
 
       function getNftImagePath(fileName) {
@@ -10558,14 +10561,6 @@
           }
           imageNode.removeAttribute("data-nft-srcs");
           if (imageNode.classList.contains("nft-card-image")) {
-            if (imageNode.dataset.nftFrontFallback !== "1") {
-              imageNode.dataset.nftFrontFallback = "1";
-              imageNode.dataset.nftSrcs = JSON.stringify(getNftFrontFallbackCandidates(imageNode.closest(".nft-card-slot")?.dataset.nftCardKey || ""));
-              imageNode.dataset.nftSrcIndex = "0";
-              const fallbackSources = JSON.parse(imageNode.dataset.nftSrcs);
-              imageNode.src = fallbackSources[0] || NFT_CARD_PLACEHOLDER;
-              return;
-            }
             imageNode.src = NFT_CARD_PLACEHOLDER;
             return;
           }
