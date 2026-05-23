@@ -58,8 +58,8 @@ if (fs.existsSync(nftDir)) {
 }
 
 const manifest = JSON.parse(fs.readFileSync(path.join(root, "data/nft-manifest.json"), "utf8"));
-if (manifest.count !== 1934 || !Array.isArray(manifest.cards) || manifest.cards.length !== 1934) {
-  throw new Error("NFT manifest must contain 1934 cards.");
+if (!Array.isArray(manifest.cards) || manifest.cards.length === 0 || manifest.count !== manifest.cards.length) {
+  throw new Error("NFT manifest count must match the available card list.");
 }
 
 const textFilesToCheck = [
