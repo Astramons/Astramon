@@ -27,7 +27,7 @@ NFT card metadata is loaded from:
 data/nft-manifest.json
 ```
 
-The market renders cards in batches to keep the page responsive. Large card images should be hosted outside GitHub Pages and provided through runtime configuration with `nftImageBaseUrl`, which defaults to `https://cdn.astramon.fun/nft-cards`.
+The market renders cards in batches to keep the page responsive. Large card images should be hosted outside GitHub Pages and provided through runtime configuration with `nftImageBaseUrl`, which defaults to the current Cloudflare R2 public bucket URL.
 
 ## Deployment
 

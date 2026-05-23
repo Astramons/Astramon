@@ -63,12 +63,12 @@ See [docs/WALLET_INTEGRATION.md](docs/WALLET_INTEGRATION.md) for details.
 Astramon expects NFT images at:
 
 ```text
-https://cdn.astramon.fun/nft-cards/product-001.JPG
-https://cdn.astramon.fun/nft-cards/product-002.JPG
+https://pub-b3acfc620a4846df963fba9e466f6c45.r2.dev/nft-cards/product-001.JPG
+https://pub-b3acfc620a4846df963fba9e466f6c45.r2.dev/nft-cards/product-002.JPG
 ...
 ```
 
-Upload the full `nft-cards` folder to Cloudflare R2, then bind the public bucket or custom domain to `cdn.astramon.fun`. Once that is live, the market and summon views will load real NFT art automatically.
+Upload the full `nft-cards` folder to Cloudflare R2, then expose the bucket through the R2 public development URL or a custom domain such as `cdn.astramon.fun`. Once that is live, the market and summon views will load real NFT art automatically.
 
 ## Deployment
 
