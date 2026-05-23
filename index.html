@@ -8387,9 +8387,9 @@
           justify-items: start;
           justify-content: flex-start;
           display: grid;
-          grid-template-columns: repeat(2, 86px);
+          grid-template-columns: repeat(2, 74px);
           align-items: center;
-          gap: 6px;
+          gap: 5px;
           margin-top: 2px;
         }
 
@@ -8400,23 +8400,30 @@
         .monster-tags .type-tags:has(.type-pill:only-child)::after {
           content: "";
           display: block;
-          width: 86px;
-          min-height: 26px;
+          width: 74px;
+          min-height: 24px;
         }
 
         .monster-tags .type-pill,
         .monster-role {
-          width: 86px;
-          min-width: 86px;
-          max-width: 86px;
-          height: 26px;
-          min-height: 26px;
-          padding: 4px 6px;
+          width: 74px;
+          min-width: 74px;
+          max-width: 74px;
+          height: 24px;
+          min-height: 24px;
+          padding: 3px 5px;
           box-sizing: border-box;
           border-radius: 6px;
           border-width: 2px;
           box-shadow: 3px 3px 0 #17243a, inset 0 0 0 1px rgba(255, 255, 255, 0.46);
-          justify-content: flex-start;
+          justify-content: center;
+          gap: 4px;
+          font-size: 0.44rem;
+        }
+
+        .monster-tags .type-pill::before {
+          width: 10px;
+          height: 10px;
         }
 
         .monster-role {
@@ -8425,7 +8432,7 @@
           overflow: hidden;
           text-overflow: clip;
           white-space: nowrap;
-          font-size: clamp(0.4rem, 1.9vw, 0.5rem);
+          font-size: 0.38rem;
         }
       }
 
