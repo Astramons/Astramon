@@ -35,6 +35,7 @@ const requiredAssets = [
   "assets/top-scene-image.jpg",
   "assets/pokemon-league-map.jpg",
   "assets/pixel-card-back.svg",
+  "assets/nft-front-placeholder.svg",
   "assets/balls/poke-ball.svg",
   "data/nft-manifest.json"
 ];

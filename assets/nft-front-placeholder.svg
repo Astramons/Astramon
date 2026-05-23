@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 868 1212" role="img" aria-labelledby="title desc">
+  <title id="title">Astramon front card placeholder</title>
+  <desc id="desc">A bright front-facing Astramon card placeholder used when a remote NFT image is unavailable.</desc>
+  <defs>
+    <linearGradient id="cardBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff7ad"/>
+      <stop offset="0.48" stop-color="#ffe46b"/>
+      <stop offset="1" stop-color="#f4c84e"/>
+    </linearGradient>
+    <linearGradient id="artBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#dff6ff"/>
+      <stop offset="0.52" stop-color="#8ed1ee"/>
+      <stop offset="1" stop-color="#6edc73"/>
+    </linearGradient>
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#16334d" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+  <rect width="868" height="1212" rx="58" fill="#d9d9d0"/>
+  <rect x="34" y="34" width="800" height="1144" rx="32" fill="url(#cardBg)" filter="url(#softShadow)"/>
+  <rect x="68" y="92" width="732" height="92" rx="30" fill="#fffdf0" stroke="#a8a79a" stroke-width="8"/>
+  <text x="104" y="158" font-family="Arial Black, Impact, sans-serif" font-size="54" fill="#1c2738">ASTRAMON</text>
+  <circle cx="742" cy="138" r="43" fill="#facc15" stroke="#253a56" stroke-width="8"/>
+  <path d="M732 112h24l-17 26h24l-42 48 15-35h-24z" fill="#ffffff" stroke="#253a56" stroke-width="5" stroke-linejoin="round"/>
+  <rect x="68" y="230" width="732" height="430" rx="18" fill="#f8fbff" stroke="#8b8d86" stroke-width="10"/>
+  <rect x="92" y="254" width="684" height="382" rx="8" fill="url(#artBg)"/>
+  <g transform="translate(434 438)">
+    <ellipse cx="0" cy="156" rx="174" ry="28" fill="#1b5a4c" opacity="0.18"/>
+    <circle cx="0" cy="-14" r="124" fill="#ffe15b" stroke="#1c2738" stroke-width="13"/>
+    <path d="M-118-28c46-92 190-88 232 6-40 34-76 49-116 49-41 0-78-17-116-55z" fill="#fff5a5"/>
+    <circle cx="-48" cy="-32" r="20" fill="#1c2738"/>
+    <circle cx="48" cy="-32" r="20" fill="#1c2738"/>
+    <path d="M-34 40c30 22 66 22 96 0" fill="none" stroke="#1c2738" stroke-width="12" stroke-linecap="round"/>
+    <path d="M-146-134l-54-92 112 32zM146-134l54-92-112 32z" fill="#ffe15b" stroke="#1c2738" stroke-width="12" stroke-linejoin="round"/>
+  </g>
+  <rect x="68" y="706" width="732" height="86" rx="28" fill="#fffdf0" stroke="#b7b6a9" stroke-width="8"/>
+  <text x="104" y="764" font-family="Arial Black, Impact, sans-serif" font-size="42" fill="#1c2738">FRONT CARD</text>
+  <text x="610" y="764" font-family="Arial Black, Impact, sans-serif" font-size="42" fill="#1c2738">HP 80</text>
+  <text x="96" y="892" font-family="Arial Black, Impact, sans-serif" font-size="56" fill="#1c2738">ASTRA STRIKE</text>
+  <text x="96" y="958" font-family="Arial, sans-serif" font-size="36" font-weight="700" fill="#1c2738">Remote image unavailable.</text>
+  <text x="96" y="1012" font-family="Arial, sans-serif" font-size="36" font-weight="700" fill="#1c2738">Showing a front-facing card.</text>
+  <rect x="68" y="1080" width="732" height="48" rx="12" fill="#fffdf0" stroke="#b7b6a9" stroke-width="7"/>
+  <text x="96" y="1116" font-family="Arial Black, Impact, sans-serif" font-size="30" fill="#1c2738">ASTRA / NFT / COLLECTIBLE</text>
+</svg>
