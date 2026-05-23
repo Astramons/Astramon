@@ -13,7 +13,6 @@ Astramon is a bright 16-bit Solana card summon, NFT collection, and marketplace 
 - Astra token payment flow for opening NFT card packs.
 - NFT market grid powered by local card assets in `assets/nft-cards`.
 - GitHub Pages deployment workflow and custom domain support.
-- CI validation for inline JavaScript, required assets, project naming, and English-only text files.
 
 ## Local Development
 
