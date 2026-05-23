@@ -8425,6 +8425,19 @@
           font-size: 0.5rem;
         }
       }
+
+      /* Final market performance pass: keep filter switches responsive. */
+      .market-grid .nft-card-slot {
+        content-visibility: auto;
+        contain-intrinsic-size: 340px 520px;
+      }
+
+      .market-view *,
+      .market-view *::before,
+      .market-view *::after {
+        animation: none !important;
+        transition: none !important;
+      }
     </style>
   </head>
   <body>
@@ -8899,15 +8912,18 @@
 
       function getNftImageCandidates(fileName) {
         if (!NFT_IMAGE_BASE_URL) return [NFT_CARD_PLACEHOLDER];
+        const localFolder = "./assets/nft-cards";
         const base = NFT_IMAGE_BASE_URL.replace(/\/$/, "");
-        const root = base.replace(/\/nft-cards$/i, "");
-        const folders = uniqueList([
+        const root = base.replace(/(?:\/astramon-nft-cards)?\/nft-cards$/i, "");
+        const remoteFolders = [
           base,
           root,
           `${root}/nft-cards`,
+          `${root}/astramon-nft-cards/nft-cards`,
           `${root}/nft-cards/nft-cards`,
           `${root}/assets/nft-cards`
-        ]);
+        ];
+        const folders = uniqueList(window.location.protocol === "file:" ? [localFolder, ...remoteFolders] : [...remoteFolders, localFolder]);
         return uniqueList(folders.flatMap((folder) => nftFileNameVariants(fileName).map((name) => `${folder}/${name}`)));
       }
 
@@ -8961,6 +8977,7 @@
       }
 
       async function loadNftCardsFromManifest() {
+        const defaultCards = buildNftCards();
         if (!NFT_MANIFEST_URL) return buildNftCards();
         try {
           const response = await fetch(NFT_MANIFEST_URL, { cache: "no-store" });
@@ -8968,10 +8985,14 @@
           const manifest = await response.json();
           const cards = Array.isArray(manifest?.cards) ? manifest.cards : [];
           const frontCards = cards.filter((card) => card?.imageFile && !card?.isBack);
-          return frontCards.length ? frontCards.map(normalizeNftCard) : buildNftCards();
+          const mergedCards = new Map(defaultCards.map((card) => [card.imageFile, card]));
+          frontCards.map(normalizeNftCard).forEach((card) => {
+            mergedCards.set(card.imageFile, card);
+          });
+          return [...mergedCards.values()].sort((a, b) => Number(a.id) - Number(b.id));
         } catch (error) {
           console.warn("Astramon NFT manifest could not be loaded.", error);
-          return buildNftCards();
+          return defaultCards;
         }
       }
 
@@ -8983,6 +9004,7 @@
       let marketCurrentFilter = "ALL";
       let marketVisibleLimit = MARKET_PAGE_SIZE;
       let marketRerenderTimer = 0;
+      let marketRenderToken = 0;
       const unavailableNftCards = new Set();
 
       function nftCardKey(card) {
@@ -9942,6 +9964,8 @@
       }
 
       function marketCardMarkup(card, originalIndex, visibleIndex) {
+        const loadingMode = visibleIndex < 12 ? "eager" : "lazy";
+        const fetchPriority = visibleIndex < 12 ? "high" : "low";
         return `
           <article class="nft-card-slot pixel-panel pixel-wood hover-lift is-loading ${visibleIndex === 0 ? "is-featured" : ""}" data-nft-card-key="${escapeAttribute(nftCardKey(card))}" data-nft-card-index="${originalIndex}">
             <div class="nft-card-head pixel-font">
@@ -9949,7 +9973,7 @@
               <span>${card.rarity}</span>
             </div>
             <button class="nft-card-frame" type="button" data-nft-zoom="${originalIndex}" aria-label="View ${card.name}">
-              <img ${nftImageAttributes(card, "nft-card-image")} alt="${card.name} NFT card" loading="eager" decoding="async" />
+              <img ${nftImageAttributes(card, "nft-card-image")} alt="${card.name} NFT card" loading="${loadingMode}" decoding="async" fetchpriority="${fetchPriority}" />
             </button>
             <div class="nft-card-meta">
               <h3 class="pixel-font">${card.name}</h3>
@@ -9962,11 +9986,8 @@
       function watchMarketCardImages(grid) {
         grid.querySelectorAll(".nft-card-slot").forEach((slot) => {
           const imageNode = slot.querySelector(".nft-card-image");
-          if (!imageNode) return;
-          window.setTimeout(() => {
-            if (!slot.isConnected || imageNode.complete) return;
-            removeUnavailableMarketCard(imageNode);
-          }, 4500);
+          if (!imageNode || imageNode.dataset.marketWatchBound === "true") return;
+          imageNode.dataset.marketWatchBound = "true";
         });
       }
 
@@ -9980,15 +10001,17 @@
 
       function removeUnavailableMarketCard(imageNode) {
         const cardSlot = imageNode.closest(".nft-card-slot");
-        const cardKey = cardSlot?.dataset.nftCardKey;
-        if (cardKey) unavailableNftCards.add(cardKey);
-        if (cardSlot) cardSlot.remove();
-        scheduleMarketRerender();
+        if (cardSlot) {
+          cardSlot.classList.remove("is-loading");
+          cardSlot.classList.add("is-image-loaded");
+        }
+        imageNode.src = NFT_CARD_PLACEHOLDER;
       }
 
       function renderMarketCards(filter = "ALL") {
         const grid = document.getElementById("marketGrid");
         if (!grid) return;
+        const renderToken = ++marketRenderToken;
         const normalized = String(filter || "ALL").toUpperCase();
         marketCurrentFilter = normalized;
         const visibleCards = nftCards
@@ -9996,10 +10019,26 @@
           .filter(({ card }) => !unavailableNftCards.has(nftCardKey(card)))
           .filter(({ card }) => normalized === "ALL" || card.rarity === normalized);
         const renderedCards = visibleCards.slice(0, marketVisibleLimit);
-        grid.innerHTML = visibleCards.length
-          ? renderedCards.map(({ card, index }, visibleIndex) => marketCardMarkup(card, index, visibleIndex)).join("")
-          : `<div class="market-empty pixel-panel pixel-wood pixel-font">NO ${normalized} CARDS</div>`;
-        watchMarketCardImages(grid);
+        grid.innerHTML = "";
+        if (!visibleCards.length) {
+          grid.innerHTML = `<div class="market-empty pixel-panel pixel-wood pixel-font">NO ${normalized} CARDS</div>`;
+        } else {
+          const renderBatch = (start = 0) => {
+            if (renderToken !== marketRenderToken) return;
+            const batchSize = start === 0 ? 12 : 8;
+            const batch = renderedCards.slice(start, start + batchSize);
+            if (!batch.length) return;
+            grid.insertAdjacentHTML(
+              "beforeend",
+              batch.map(({ card, index }, offset) => marketCardMarkup(card, index, start + offset)).join("")
+            );
+            watchMarketCardImages(grid);
+            if (start + batchSize < renderedCards.length) {
+              window.requestAnimationFrame(() => renderBatch(start + batchSize));
+            }
+          };
+          renderBatch();
+        }
         const status = document.getElementById("marketFilterStatus");
         if (status) {
           status.textContent = `${normalized} · ${Math.min(renderedCards.length, visibleCards.length)} / ${visibleCards.length} CARDS`;
@@ -10011,9 +10050,6 @@
           moreWrap.hidden = !hasMore;
           moreButton.textContent = `LOAD MORE ${visibleCards.length - renderedCards.length}`;
         }
-        grid.querySelectorAll("[data-nft-zoom]").forEach((node) => {
-          node.addEventListener("click", () => openNftZoom(Number(node.dataset.nftZoom)));
-        });
       }
 
       function renderMarketPage(filter = "ALL") {
@@ -10076,6 +10112,11 @@
         pageView.querySelector("[data-market-more]")?.addEventListener("click", () => {
           marketVisibleLimit += MARKET_PAGE_SIZE;
           renderMarketCards(marketCurrentFilter);
+        });
+        pageView.querySelector("#marketGrid")?.addEventListener("click", (event) => {
+          const zoomTarget = event.target.closest("[data-nft-zoom]");
+          if (!zoomTarget) return;
+          openNftZoom(Number(zoomTarget.dataset.nftZoom));
         });
         renderMarketCards(activeFilter);
         const overlay = document.getElementById("nftZoomOverlay");
