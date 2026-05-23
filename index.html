@@ -1274,8 +1274,7 @@
       }
 
       .nft-card-slot.is-loading {
-        opacity: 0;
-        pointer-events: none;
+        opacity: 1;
       }
 
       .nft-card-slot.is-image-loaded {
@@ -8705,8 +8704,6 @@
       let currentSummonOwned = false;
       let marketCurrentFilter = "ALL";
       let marketVisibleLimit = MARKET_PAGE_SIZE;
-      let marketRerenderTimer = 0;
-      const unavailableNftCards = new Set();
 
       function nftCardKey(card) {
         return String(card?.imageFile || card?.id || card?.image || "");
@@ -9682,22 +9679,6 @@
         `;
       }
 
-      function scheduleMarketRerender() {
-        if (!document.getElementById("marketGrid")) return;
-        window.clearTimeout(marketRerenderTimer);
-        marketRerenderTimer = window.setTimeout(() => {
-          renderMarketCards(marketCurrentFilter);
-        }, 120);
-      }
-
-      function removeUnavailableNftSlot(imageNode) {
-        const cardSlot = imageNode.closest(".nft-card-slot");
-        const cardKey = cardSlot?.dataset.nftCardKey;
-        if (cardKey) unavailableNftCards.add(cardKey);
-        if (cardSlot) cardSlot.remove();
-        scheduleMarketRerender();
-      }
-
       function renderMarketCards(filter = "ALL") {
         const grid = document.getElementById("marketGrid");
         if (!grid) return;
@@ -9705,7 +9686,6 @@
         marketCurrentFilter = normalized;
         const visibleCards = nftCards
           .map((card, index) => ({ card, index }))
-          .filter(({ card }) => !unavailableNftCards.has(nftCardKey(card)))
           .filter(({ card }) => normalized === "ALL" || card.rarity === normalized);
         const renderedCards = visibleCards.slice(0, marketVisibleLimit);
         grid.innerHTML = visibleCards.length
@@ -10572,10 +10552,8 @@
           }
           imageNode.removeAttribute("data-nft-srcs");
           if (imageNode.classList.contains("nft-card-image")) {
-            if (imageNode.closest(".nft-card-slot")) {
-              removeUnavailableNftSlot(imageNode);
-              return;
-            }
+            imageNode.src = NFT_CARD_PLACEHOLDER;
+            return;
           }
           imageNode.src = NFT_CARD_PLACEHOLDER;
         },
