@@ -8588,6 +8588,7 @@
       const MARKET_PAGE_SIZE = 60;
       const NFT_IMAGE_BASE_URL = readConfigString("nftImageBaseUrl", "https://pub-b3acfc620a4846df963fba9e466f6c45.r2.dev/nft-cards");
       const NFT_CARD_PLACEHOLDER = "./assets/pixel-card-back.svg";
+      const NFT_MANIFEST_URL = readConfigString("nftManifestUrl", "./data/nft-manifest.json");
 
       function uniqueList(values) {
         return values.filter((value, index, list) => value && list.indexOf(value) === index);
@@ -8638,34 +8639,58 @@
         imageNode.dataset.nftSrcIndex = "0";
       }
 
-      function buildNftCards() {
-        const rarityCycle = ["R", "R", "SR", "R", "SR", "SSR", "R", "SR", "R", "SSR", "R", "SR"];
-        return Array.from({ length: NFT_CARD_COUNT }, (_, index) => {
-          const number = String(index + 1).padStart(4, "0");
-          const rarity = rarityCycle[index % rarityCycle.length];
-          const fileNumber = String(index + 1).padStart(3, "0");
-          return {
-            id: number,
-            name: `Astramon Card ${fileNumber}`,
-            jpName: `Astra Collection ${fileNumber}`,
-            rarity,
-            price: `${35 + index * 3} Astra`,
-            image: getNftImagePath(`product-${fileNumber}.JPG`),
-            imageCandidates: getNftImageCandidates(`product-${fileNumber}.JPG`),
-            imageFile: `product-${fileNumber}.JPG`,
-            subtype: "NFT / Collectible",
-            description: "Imported image from the latest NFT pack set.",
-            hp: 40 + (index % 9) * 8,
-            atk: 12 + (index % 7) * 6,
-            def: 20 + (index % 8) * 5,
-            spd: 60 + (index % 10) * 7
-          };
-        });
+      function cardNumberFromFile(fileName, fallbackIndex) {
+        const match = String(fileName || "").match(/product-(\d+)\./i);
+        return match ? Number(match[1]) : fallbackIndex + 1;
       }
 
-      const nftCards = buildNftCards();
+      function normalizeNftCard(rawCard, index) {
+        const rarityCycle = ["R", "R", "SR", "R", "SR", "SSR", "R", "SR", "R", "SSR", "R", "SR"];
+        const imageFile = rawCard?.imageFile || rawCard?.file || `product-${String(index + 1).padStart(3, "0")}.JPG`;
+        const cardNumber = cardNumberFromFile(imageFile, index);
+        const id = String(rawCard?.id || cardNumber).padStart(4, "0");
+        const fileNumber = String(cardNumber).padStart(3, "0");
+        const rarity = rawCard?.rarity || rarityCycle[index % rarityCycle.length];
+        return {
+          id,
+          name: rawCard?.name || `Astramon Card ${fileNumber}`,
+          jpName: rawCard?.collection || rawCard?.jpName || `Astra Collection ${fileNumber}`,
+          rarity,
+          price: rawCard?.price || `${35 + index * 3} Astra`,
+          image: rawCard?.imageUrl || getNftImagePath(imageFile),
+          imageCandidates: rawCard?.imageUrl ? [rawCard.imageUrl, ...getNftImageCandidates(imageFile)] : getNftImageCandidates(imageFile),
+          imageFile,
+          subtype: rawCard?.subtype || "NFT / Collectible",
+          description: rawCard?.description || "Imported image from the latest NFT pack set.",
+          hp: rawCard?.hp || 40 + (index % 9) * 8,
+          atk: rawCard?.atk || 12 + (index % 7) * 6,
+          def: rawCard?.def || 20 + (index % 8) * 5,
+          spd: rawCard?.spd || 60 + (index % 10) * 7
+        };
+      }
 
-      const TOTAL_NFT_CARDS = nftCards.length;
+      function buildNftCards(count = NFT_CARD_COUNT) {
+        return Array.from({ length: count }, (_, index) => normalizeNftCard(null, index));
+      }
+
+      async function loadNftCardsFromManifest() {
+        if (!NFT_MANIFEST_URL) return buildNftCards();
+        try {
+          const response = await fetch(NFT_MANIFEST_URL, { cache: "no-store" });
+          if (!response.ok) throw new Error(`Manifest request failed: ${response.status}`);
+          const manifest = await response.json();
+          const cards = Array.isArray(manifest?.cards) ? manifest.cards : [];
+          const frontCards = cards.filter((card) => card?.imageFile && !card?.isBack);
+          return frontCards.length ? frontCards.map(normalizeNftCard) : buildNftCards();
+        } catch (error) {
+          console.warn("Astramon NFT manifest could not be loaded.", error);
+          return buildNftCards();
+        }
+      }
+
+      let nftCards = buildNftCards();
+
+      let TOTAL_NFT_CARDS = nftCards.length;
       let currentSummonCard = nftCards[0];
       let currentSummonOwned = false;
       let marketCurrentFilter = "ALL";
@@ -10500,6 +10525,13 @@
             return;
           }
           imageNode.removeAttribute("data-nft-srcs");
+          if (imageNode.classList.contains("nft-card-image")) {
+            const cardSlot = imageNode.closest(".nft-card-slot");
+            if (cardSlot) {
+              cardSlot.remove();
+              return;
+            }
+          }
           imageNode.src = NFT_CARD_PLACEHOLDER;
         },
         true
@@ -10516,10 +10548,17 @@
 
       window.addEventListener("popstate", renderRoute);
 
-      renderRecent();
-      setAstramon(current);
-      renderRoute();
-      loadWallet();
+      async function initializeApp() {
+        nftCards = await loadNftCardsFromManifest();
+        TOTAL_NFT_CARDS = nftCards.length;
+        currentSummonCard = nftCards[0] || currentSummonCard;
+        renderRecent();
+        setAstramon(current);
+        renderRoute();
+        loadWallet();
+      }
+
+      initializeApp();
     </script>
   </body>
 </html>
