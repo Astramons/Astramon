@@ -25,4 +25,5 @@ coverage/
 *.rar
 *.tar
 *.gz
+/assets/nft-cards/
 /assets/nft-cards/1-53/
