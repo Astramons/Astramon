@@ -8589,9 +8589,53 @@
       const NFT_IMAGE_BASE_URL = readConfigString("nftImageBaseUrl", "https://pub-b3acfc620a4846df963fba9e466f6c45.r2.dev/nft-cards");
       const NFT_CARD_PLACEHOLDER = "./assets/pixel-card-back.svg";
 
+      function uniqueList(values) {
+        return values.filter((value, index, list) => value && list.indexOf(value) === index);
+      }
+
+      function escapeAttribute(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/"/g, "&quot;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      function nftFileNameVariants(fileName) {
+        return uniqueList([
+          fileName,
+          fileName.replace(/\.JPG$/i, ".jpg"),
+          fileName.replace(/\.jpg$/i, ".JPG")
+        ]);
+      }
+
+      function getNftImageCandidates(fileName) {
+        if (!NFT_IMAGE_BASE_URL) return [NFT_CARD_PLACEHOLDER];
+        const base = NFT_IMAGE_BASE_URL.replace(/\/$/, "");
+        const root = base.replace(/\/nft-cards$/i, "");
+        const folders = uniqueList([
+          base,
+          root,
+          `${root}/nft-cards`,
+          `${root}/nft-cards/nft-cards`,
+          `${root}/assets/nft-cards`
+        ]);
+        return uniqueList(folders.flatMap((folder) => nftFileNameVariants(fileName).map((name) => `${folder}/${name}`)));
+      }
+
       function getNftImagePath(fileName) {
-        if (NFT_IMAGE_BASE_URL) return `${NFT_IMAGE_BASE_URL.replace(/\/$/, "")}/${fileName}`;
-        return NFT_CARD_PLACEHOLDER;
+        return getNftImageCandidates(fileName)[0] || NFT_CARD_PLACEHOLDER;
+      }
+
+      function nftImageAttributes(card, className) {
+        return `class="${className}" src="${escapeAttribute(card.image)}" data-nft-srcs="${escapeAttribute(JSON.stringify(card.imageCandidates || [card.image]))}" data-nft-src-index="0"`;
+      }
+
+      function setNftImageSource(imageNode, card) {
+        if (!imageNode || !card) return;
+        imageNode.src = card.image;
+        imageNode.dataset.nftSrcs = JSON.stringify(card.imageCandidates || [card.image]);
+        imageNode.dataset.nftSrcIndex = "0";
       }
 
       function buildNftCards() {
@@ -8607,6 +8651,7 @@
             rarity,
             price: `${35 + index * 3} Astra`,
             image: getNftImagePath(`product-${fileNumber}.JPG`),
+            imageCandidates: getNftImageCandidates(`product-${fileNumber}.JPG`),
             imageFile: `product-${fileNumber}.JPG`,
             subtype: "NFT / Collectible",
             description: "Imported image from the latest NFT pack set.",
@@ -9586,7 +9631,7 @@
               <span>${card.rarity}</span>
             </div>
             <button class="nft-card-frame" type="button" data-nft-zoom="${originalIndex}" aria-label="View ${card.name}">
-              <img class="nft-card-image" src="${card.image}" alt="${card.name} NFT card" loading="lazy" />
+              <img ${nftImageAttributes(card, "nft-card-image")} alt="${card.name} NFT card" loading="lazy" />
             </button>
             <div class="nft-card-meta">
               <h3 class="pixel-font">${card.name}</h3>
@@ -9660,7 +9705,7 @@
                   <span id="nftZoomRarity">SSR</span>
                 </div>
                 <div class="nft-zoom-art">
-                  <img id="nftZoomImage" class="nft-card-image" src="${nftCards[0].image}" alt="Astramon NFT card" />
+                  <img id="nftZoomImage" ${nftImageAttributes(nftCards[0], "nft-card-image")} alt="Astramon NFT card" />
                 </div>
                 <div class="nft-card-meta">
                   <h3 id="nftZoomName" class="pixel-font">Astramon Card 001</h3>
@@ -9700,7 +9745,7 @@
         const overlay = document.getElementById("nftZoomOverlay");
         document.getElementById("nftZoomId").textContent = `#${card.id}`;
         document.getElementById("nftZoomRarity").textContent = card.rarity;
-        document.getElementById("nftZoomImage").src = card.image;
+        setNftImageSource(document.getElementById("nftZoomImage"), card);
         document.getElementById("nftZoomImage").alt = `${card.name} NFT card`;
         document.getElementById("nftZoomName").textContent = card.name;
         document.getElementById("nftZoomDesc").textContent = `${card.jpName} · ${card.subtype}. ${card.description}`;
@@ -9736,7 +9781,7 @@
         const spdNode = document.getElementById("summonCardSpd");
 
         if (imageNode) {
-          imageNode.src = card.image;
+          setNftImageSource(imageNode, card);
           imageNode.alt = `${card.name} NFT card`;
         }
         if (rarityNode) {
@@ -9819,7 +9864,7 @@
                     .map(
                       (card, index) => `
                         <span class="summon-preview-card" style="--tilt:${index === 0 ? -7 : index === 1 ? 0 : 7}deg">
-                          <img src="${card.image}" alt="${card.name} preview" loading="lazy" />
+                          <img ${nftImageAttributes(card, "")} alt="${card.name} preview" loading="lazy" />
                         </span>
                       `
                     )
@@ -9842,7 +9887,7 @@
                   <div id="summonCardRarity" class="summon-card-rarity pixel-font ${rarityClass(currentSummonCard.rarity)}">${currentSummonCard.rarity}</div>
                   <div class="summon-card-art">
                     <div id="summonCardAura" class="summon-card-aura ${rarityClass(currentSummonCard.rarity)}" aria-hidden="true"></div>
-                    <img id="summonCardImage" class="summon-card-image" src="${currentSummonCard.image}" alt="${currentSummonCard.name} NFT card" />
+                    <img id="summonCardImage" ${nftImageAttributes(currentSummonCard, "summon-card-image")} alt="${currentSummonCard.name} NFT card" />
                   </div>
                   <div class="summon-card-name-row">
                     <div class="summon-card-title-row">
@@ -10435,6 +10480,30 @@
       document.addEventListener("keydown", (event) => {
         if (event.key === "Escape") closeWalletModal();
       });
+
+      document.addEventListener(
+        "error",
+        (event) => {
+          const imageNode = event.target;
+          if (!(imageNode instanceof HTMLImageElement) || !imageNode.dataset.nftSrcs) return;
+          let sources = [];
+          try {
+            sources = JSON.parse(imageNode.dataset.nftSrcs);
+          } catch (error) {
+            sources = [];
+          }
+          const currentIndex = Number(imageNode.dataset.nftSrcIndex || 0);
+          const nextIndex = currentIndex + 1;
+          if (sources[nextIndex]) {
+            imageNode.dataset.nftSrcIndex = String(nextIndex);
+            imageNode.src = sources[nextIndex];
+            return;
+          }
+          imageNode.removeAttribute("data-nft-srcs");
+          imageNode.src = NFT_CARD_PLACEHOLDER;
+        },
+        true
+      );
 
       document.addEventListener("click", (event) => {
         const button = event.target.closest(".pixel-button");
