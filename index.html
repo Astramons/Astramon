@@ -6935,6 +6935,13 @@
         padding: 3px;
       }
 
+      .nav-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
       .nav-tab {
         flex: 0 1 auto;
         min-width: 104px;
@@ -6942,6 +6949,18 @@
         font-size: clamp(0.68rem, 0.86vw, 0.9rem);
         line-height: 1.1;
         text-align: center;
+      }
+
+      .social-link-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: clamp(92px, 8vw, 118px);
+        min-height: 60px;
+        padding: 12px 14px;
+        white-space: nowrap;
+        font-size: clamp(0.68rem, 0.86vw, 0.9rem);
+        text-decoration: none;
       }
 
       .connect-wallet-button {
@@ -6958,8 +6977,18 @@
           justify-items: center;
         }
 
+        .nav-actions {
+          width: min(100%, 480px);
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+
         .connect-wallet-button {
-          width: min(100%, 360px);
+          width: min(100%, 320px);
+        }
+
+        .social-link-button {
+          width: min(100%, 120px);
         }
       }
 
@@ -8162,7 +8191,10 @@
           <button class="pixel-button nav-tab pixel-font" type="button" data-page="market">Market</button>
           <button class="pixel-button nav-tab pixel-font" type="button" data-page="map">Map</button>
         </div>
-        <button id="connectWalletButton" class="pixel-button connect-wallet-button pixel-font" type="button" data-wallet-connect>Connect Wallet</button>
+        <div class="nav-actions">
+          <a class="pixel-button social-link-button pixel-font" href="https://x.com/PlayAstramon" target="_blank" rel="noopener noreferrer" aria-label="Open Astramon on X">X</a>
+          <button id="connectWalletButton" class="pixel-button connect-wallet-button pixel-font" type="button" data-wallet-connect>Connect Wallet</button>
+        </div>
       </div>
     </nav>
 
