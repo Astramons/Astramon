@@ -8226,9 +8226,9 @@
 
       .monster-tags .type-pill,
       .monster-role {
-        width: 92px;
-        height: 32px;
-        min-height: 32px;
+        width: 78px;
+        height: 25px;
+        min-height: 25px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -8237,9 +8237,22 @@
         border-radius: 6px;
         box-shadow: 3px 3px 0 #17243a, inset 0 0 0 1px rgba(255, 255, 255, 0.46);
         max-width: 100%;
-        font-size: clamp(0.52rem, 0.76vw, 0.6rem);
+        padding: 3px 5px;
+        gap: 4px;
+        font-size: clamp(0.42rem, 0.62vw, 0.5rem);
         line-height: 1;
         text-align: center;
+      }
+
+      .monster-tags .type-pill::before {
+        width: 10px;
+        height: 10px;
+      }
+
+      .monster-role {
+        font-size: clamp(0.36rem, 0.55vw, 0.42rem);
+        overflow: hidden;
+        white-space: nowrap;
       }
 
       .trainer-module .trainer-summary .trainer-bond-row {
