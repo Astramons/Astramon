@@ -8554,6 +8554,13 @@
       const DAILY_PACK_LIMIT = 10;
       const NFT_CARD_COUNT = 1934;
       const MARKET_PAGE_SIZE = 60;
+      const NFT_IMAGE_BASE_URL = readConfigString("nftImageBaseUrl", "");
+      const NFT_CARD_PLACEHOLDER = "./assets/pixel-card-back.svg";
+
+      function getNftImagePath(fileName) {
+        if (NFT_IMAGE_BASE_URL) return `${NFT_IMAGE_BASE_URL.replace(/\/$/, "")}/${fileName}`;
+        return NFT_CARD_PLACEHOLDER;
+      }
 
       function buildNftCards() {
         const rarityCycle = ["R", "R", "SR", "R", "SR", "SSR", "R", "SR", "R", "SSR", "R", "SR"];
@@ -8567,7 +8574,8 @@
             jpName: `Astra Collection ${fileNumber}`,
             rarity,
             price: `${35 + index * 3} Astra`,
-            image: `./assets/nft-cards/product-${fileNumber}.JPG`,
+            image: getNftImagePath(`product-${fileNumber}.JPG`),
+            imageFile: `product-${fileNumber}.JPG`,
             subtype: "NFT / Collectible",
             description: "Imported image from the latest NFT pack set.",
             hp: 40 + (index % 9) * 8,
@@ -9620,7 +9628,7 @@
                   <span id="nftZoomRarity">SSR</span>
                 </div>
                 <div class="nft-zoom-art">
-                  <img id="nftZoomImage" class="nft-card-image" src="./assets/nft-cards/product-001.JPG" alt="Astramon NFT card" />
+                  <img id="nftZoomImage" class="nft-card-image" src="${nftCards[0].image}" alt="Astramon NFT card" />
                 </div>
                 <div class="nft-card-meta">
                   <h3 id="nftZoomName" class="pixel-font">Astramon Card 001</h3>

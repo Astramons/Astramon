@@ -36,8 +36,7 @@ const requiredAssets = [
   "assets/pokemon-league-map.jpg",
   "assets/pixel-card-back.svg",
   "assets/balls/poke-ball.svg",
-  "assets/nft-cards/product-001.JPG",
-  "assets/nft-cards/product-1934.JPG"
+  "data/nft-manifest.json"
 ];
 
 for (const asset of requiredAssets) {
@@ -47,12 +46,19 @@ for (const asset of requiredAssets) {
 }
 
 const nftDir = path.join(root, "assets/nft-cards");
-const nftCards = fs
-  .readdirSync(nftDir)
-  .filter((file) => /^product-\d{3,4}\.JPG$/.test(file));
+if (fs.existsSync(nftDir)) {
+  const nftCards = fs
+    .readdirSync(nftDir)
+    .filter((file) => /^product-\d{3,4}\.JPG$/.test(file));
 
-if (nftCards.length !== 1934) {
-  throw new Error(`Expected 1934 NFT card assets, found ${nftCards.length}.`);
+  if (nftCards.length !== 1934) {
+    throw new Error(`Expected 1934 NFT card assets, found ${nftCards.length}.`);
+  }
+}
+
+const manifest = JSON.parse(fs.readFileSync(path.join(root, "data/nft-manifest.json"), "utf8"));
+if (manifest.count !== 1934 || !Array.isArray(manifest.cards) || manifest.cards.length !== 1934) {
+  throw new Error("NFT manifest must contain 1934 cards.");
 }
 
 const textFilesToCheck = [

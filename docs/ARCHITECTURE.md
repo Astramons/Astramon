@@ -21,16 +21,13 @@ The app routes by query string, for example:
 
 ## NFT Assets
 
-NFT cards are loaded from:
+NFT card metadata is loaded from:
 
 ```text
-assets/nft-cards/product-001.JPG
-assets/nft-cards/product-002.JPG
-...
-assets/nft-cards/product-1934.JPG
+data/nft-manifest.json
 ```
 
-The market renders cards in batches to keep the page responsive.
+The market renders cards in batches to keep the page responsive. Large card images should be hosted outside GitHub Pages and provided through runtime configuration with `nftImageBaseUrl`.
 
 ## Deployment
 

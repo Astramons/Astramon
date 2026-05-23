@@ -30,10 +30,22 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      - name: Prepare Pages artifact
+        run: |
+          mkdir -p public
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='assets/nft-cards' \
+            --exclude='astramon-site.zip' \
+            --exclude='*.7z' \
+            --exclude='*.zip' \
+            ./ public/
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: public
 
       - name: Deploy to GitHub Pages
         id: deployment
