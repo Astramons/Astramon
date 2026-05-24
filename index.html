@@ -10566,6 +10566,9 @@
         const summonResult = randomNftCard();
         currentSummonCard = summonResult.card;
         currentSummonOwned = summonResult.alreadyOwned;
+        if (!currentSummonOwned) {
+          setOwnedNftId(currentSummonCard.id);
+        }
         applySummonCard(currentSummonCard, currentSummonOwned);
         incrementDailySummonOpened();
         updateSummonLimitInfo();
