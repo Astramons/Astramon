@@ -1272,6 +1272,7 @@
         gap: 8px;
         padding: 11px;
         text-align: left;
+        contain: layout paint style;
       }
 
       .nft-card-slot.is-loading {
@@ -1303,8 +1304,6 @@
         color: inherit;
         cursor: pointer;
         background:
-          radial-gradient(circle at 50% 44%, rgba(255, 247, 173, 0.74) 0 42px, transparent 44px),
-          repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.24) 0 8px, transparent 8px 16px),
           linear-gradient(180deg, #eaffd9, #b9ef9c);
       }
 
@@ -1335,6 +1334,7 @@
         height: 100%;
         display: block;
         object-fit: contain;
+        transform: translateZ(0);
         background: linear-gradient(180deg, #fffde8, #dff0c8);
       }
 
@@ -9041,7 +9041,7 @@
       const PACK_CURRENCY = "Astra";
       const DAILY_PACK_LIMIT = 10;
       const NFT_CARD_COUNT = 1934;
-      const MARKET_PAGE_SIZE = 60;
+      const MARKET_PAGE_SIZE = 30;
       const NFT_IMAGE_BASE_URL = readConfigString("nftImageBaseUrl", "https://pub-b3acfc620a4846df963fba9e466f6c45.r2.dev/nft-cards");
       const NFT_CARD_PLACEHOLDER = "./assets/nft-front-placeholder.svg";
       const NFT_MANIFEST_URL = readConfigString("nftManifestUrl", "./data/nft-manifest.json");
@@ -10208,8 +10208,8 @@
         `;
       }
 
-      function watchMarketCardImages(grid) {
-        grid.querySelectorAll(".nft-card-slot").forEach((slot) => {
+      function watchMarketCardImages(slots) {
+        slots.forEach((slot) => {
           const imageNode = slot.querySelector(".nft-card-image");
           if (!imageNode || imageNode.dataset.marketWatchBound === "true") return;
           imageNode.dataset.marketWatchBound = "true";
@@ -10253,13 +10253,15 @@
             const batchSize = start === 0 ? 8 : 6;
             const batch = renderedCards.slice(start, start + batchSize);
             if (!batch.length) return;
-            grid.insertAdjacentHTML(
-              "beforeend",
-              batch.map(({ card, index }, offset) => marketCardMarkup(card, index, start + offset)).join("")
-            );
-            watchMarketCardImages(grid);
+            const fragment = document.createElement("template");
+            fragment.innerHTML = batch.map(({ card, index }, offset) => marketCardMarkup(card, index, start + offset)).join("");
+            const slots = Array.from(fragment.content.querySelectorAll(".nft-card-slot"));
+            watchMarketCardImages(slots);
+            grid.appendChild(fragment.content);
             if (start + batchSize < renderedCards.length) {
-              window.requestAnimationFrame(() => renderBatch(start + batchSize));
+              window.setTimeout(() => {
+                window.requestAnimationFrame(() => renderBatch(start + batchSize));
+              }, 24);
             }
           };
           renderBatch();
