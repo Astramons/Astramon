@@ -8452,6 +8452,134 @@
         }
       }
 
+      @media (max-width: 520px) {
+        .page-view:has(.summon-view) {
+          max-width: calc(100vw - 24px);
+        }
+
+        .summon-machine {
+          min-height: 860px;
+          padding: 14px 12px 16px;
+        }
+
+        .summon-topbar {
+          gap: 8px;
+        }
+
+        .summon-brand {
+          font-size: 0.68rem;
+        }
+
+        .summon-brand strong {
+          font-size: 0.82rem;
+        }
+
+        .summon-connect {
+          min-height: 42px;
+          padding: 0 14px;
+          font-size: 0.64rem;
+        }
+
+        .summon-back {
+          min-height: 36px;
+          padding: 0 12px;
+          font-size: 0.6rem;
+        }
+
+        .summon-quick-links {
+          width: 100%;
+          gap: 8px;
+        }
+
+        .summon-quick-links .pixel-button {
+          min-height: 42px;
+          padding: 7px 8px;
+          gap: 6px;
+          font-size: 0.52rem;
+        }
+
+        .summon-status {
+          font-size: 0.86rem;
+        }
+
+        .summon-drop {
+          font-size: 0.68rem;
+        }
+
+        .summon-preview-banner,
+        .summon-hint {
+          max-width: 100%;
+          text-align: center;
+          line-height: 1.35;
+        }
+
+        .summon-title {
+          font-size: 2.22rem;
+        }
+
+        .summon-card-front,
+        .summon-card-back {
+          top: 57%;
+          width: min(286px, calc(100vw - 84px));
+        }
+
+        .summon-card-front {
+          min-height: 444px;
+          padding: 12px;
+          gap: 7px;
+        }
+
+        .summon-card-back {
+          height: min(400px, calc((100vw - 84px) * 1.4));
+        }
+
+        .summon-card-front .summon-card-art {
+          min-height: 212px;
+          padding: 8px;
+        }
+
+        .summon-card-front .summon-card-name {
+          font-size: 0.98rem;
+        }
+
+        .summon-card-ribbon {
+          padding: 6px 10px;
+          font-size: 0.64rem;
+        }
+
+        .summon-card-rarity,
+        .summon-card-class,
+        .summon-card-jp,
+        .summon-drop-rate,
+        .summon-card-id {
+          font-size: 0.58rem;
+        }
+
+        .summon-limit-line {
+          gap: 5px;
+        }
+
+        .summon-limit-pill {
+          padding: 4px 6px;
+          font-size: 0.46rem;
+        }
+
+        .summon-open-button,
+        .summon-machine .summon-open-button {
+          min-height: 62px;
+          font-size: 0.9rem;
+        }
+
+        .astra-cost {
+          gap: 4px;
+          padding: 4px 8px;
+        }
+
+        .astra-amount {
+          font-size: 0.58rem;
+        }
+      }
+
       /* Final market performance pass: keep filter switches responsive. */
       .market-grid .nft-card-slot {
         content-visibility: auto;
@@ -9119,13 +9247,26 @@
         return nextCount;
       }
 
-      function updateSummonLimitInfo() {
+      function isDailySummonLimitReached() {
+        return getDailySummonOpened() >= DAILY_PACK_LIMIT;
+      }
+
+      function updateSummonActionButton(forceLocked = false) {
+        const actionNode = document.getElementById("packActionButton");
+        if (!actionNode) return;
+        const isLocked = forceLocked || isDailySummonLimitReached();
+        actionNode.disabled = isLocked;
+        actionNode.innerHTML = `${isLocked ? "LIMIT" : "OPEN"}${packCostMarkup(PACK_COST)}`;
+      }
+
+      function updateSummonLimitInfo(updateAction = false) {
         const ownedNode = document.getElementById("summonOwnedInfo");
         const todayNode = document.getElementById("summonTodayInfo");
         const balanceNode = document.getElementById("summonBalanceInfo");
         if (ownedNode) ownedNode.innerHTML = `OWNED: <strong>${ownedNftCount()}/${TOTAL_NFT_CARDS}</strong>`;
         if (todayNode) todayNode.innerHTML = `TODAY OPENED: <strong>${Math.min(getDailySummonOpened(), DAILY_PACK_LIMIT)}/${DAILY_PACK_LIMIT}</strong>`;
         if (balanceNode) balanceNode.innerHTML = `Astra BALANCE: <strong>${walletState.connected ? formatAstra(walletState.balance) : "CONNECT"}</strong>`;
+        if (updateAction) updateSummonActionButton();
       }
 
       function packCostMarkup(amount = PACK_COST, currency = PACK_CURRENCY) {
@@ -10328,8 +10469,8 @@
                   <span id="summonOwnedInfo" class="summon-limit-pill">OWNED: <strong>${ownedNftCount()}/${TOTAL_NFT_CARDS}</strong></span>
                   <span id="summonTodayInfo" class="summon-limit-pill">TODAY OPENED: <strong>${Math.min(getDailySummonOpened(), DAILY_PACK_LIMIT)}/${DAILY_PACK_LIMIT}</strong></span>
                 </div>
-                <button id="packActionButton" class="pixel-button summon-open-button pixel-font" type="button" data-pack-action>
-                  OPEN
+                <button id="packActionButton" class="pixel-button summon-open-button pixel-font" type="button" data-pack-action ${isDailySummonLimitReached() ? "disabled" : ""}>
+                  ${isDailySummonLimitReached() ? "LIMIT" : "OPEN"}
                   ${packCostMarkup(PACK_COST)}
                 </button>
               </div>
@@ -10365,6 +10506,15 @@
         const hintNode = document.getElementById("summonHint");
         const actionNode = document.getElementById("packActionButton");
         if (!machine || !actionNode) return;
+
+        if (isDailySummonLimitReached()) {
+          triggerSummonFeedback("error");
+          statusNode.textContent = "DAILY LIMIT";
+          dropNode.textContent = "10/10 OPENED";
+          if (hintNode) hintNode.textContent = "COME BACK TOMORROW";
+          updateSummonActionButton();
+          return;
+        }
 
         if (!walletState.connected || !walletState.address) {
           triggerSummonFeedback("error");
@@ -10470,8 +10620,7 @@
           if (hintNode) hintNode.textContent = "OPEN AGAIN FOR NEXT CARD";
           updateSummonLimitInfo();
           if (actionNode) {
-            actionNode.innerHTML = `OPEN${packCostMarkup(PACK_COST)}`;
-            actionNode.disabled = false;
+            updateSummonActionButton();
           }
         }, 320);
       }
