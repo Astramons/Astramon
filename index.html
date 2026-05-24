@@ -9247,7 +9247,12 @@
           safeSetStorage("astraSummonOpenedToday", "0");
           return 0;
         }
-        return Number(safeGetStorage("astraSummonOpenedToday") || 0);
+        const openedCount = Number(safeGetStorage("astraSummonOpenedToday") || 0);
+        if (!Number.isFinite(openedCount) || openedCount < 0) {
+          safeSetStorage("astraSummonOpenedToday", "0");
+          return 0;
+        }
+        return Math.floor(openedCount);
       }
 
       function incrementDailySummonOpened() {
@@ -10371,6 +10376,10 @@
         pageView.classList.remove("is-hidden");
         overviewGrid.classList.add("is-hidden");
         document.querySelectorAll(".nav-tab").forEach((node) => node.classList.remove("is-active"));
+        const summonLimitReached = isDailySummonLimitReached();
+        const summonStatusText = summonLimitReached ? "DAILY LIMIT" : result;
+        const summonDropText = summonLimitReached ? "10/10 OPENED" : "NEW DROP!";
+        const summonHintText = summonLimitReached ? "COME BACK TOMORROW" : "PAY 100,000 Astra TO GET CARD BACK";
 
         pageView.innerHTML = `
           <section class="summon-view">
@@ -10418,11 +10427,11 @@
               </div>
 
               <div class="summon-center">
-                <div id="summonStatus" class="summon-status pixel-font">${result}</div>
-                <div id="summonDrop" class="summon-drop pixel-font">NEW DROP!</div>
+                <div id="summonStatus" class="summon-status pixel-font">${summonStatusText}</div>
+                <div id="summonDrop" class="summon-drop pixel-font">${summonDropText}</div>
                 <div class="summon-preview-banner pixel-font">NEW LIMITED POOL · SSR 2.8% · ELECTRIC HOLO</div>
                 <h1 class="summon-title pixel-font">ASTRAMON<br />CARD<br />SUMMON</h1>
-                <p id="summonHint" class="summon-hint pixel-font">PAY 100,000 Astra TO GET CARD BACK</p>
+                <p id="summonHint" class="summon-hint pixel-font">${summonHintText}</p>
                 <div class="summon-rare-preview" aria-label="Rare card preview">
                   ${nftCards
                     .slice(0, 3)
@@ -10479,8 +10488,8 @@
                   <span id="summonOwnedInfo" class="summon-limit-pill">OWNED: <strong>${ownedNftCount()}/${TOTAL_NFT_CARDS}</strong></span>
                   <span id="summonTodayInfo" class="summon-limit-pill">TODAY OPENED: <strong>${Math.min(getDailySummonOpened(), DAILY_PACK_LIMIT)}/${DAILY_PACK_LIMIT}</strong></span>
                 </div>
-                <button id="packActionButton" class="pixel-button summon-open-button pixel-font" type="button" data-pack-action ${isDailySummonLimitReached() ? "disabled" : ""}>
-                  ${isDailySummonLimitReached() ? "LIMIT" : "OPEN"}
+                <button id="packActionButton" class="pixel-button summon-open-button pixel-font" type="button" data-pack-action ${summonLimitReached ? "disabled" : ""}>
+                  ${summonLimitReached ? "LIMIT" : "OPEN"}
                   ${packCostMarkup(PACK_COST)}
                 </button>
               </div>
