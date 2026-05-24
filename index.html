@@ -20,6 +20,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@PlayAstramon" />
     <link rel="me" href="https://x.com/PlayAstramon" />
+    <link rel="preconnect" href="https://pub-b3acfc620a4846df963fba9e466f6c45.r2.dev" crossorigin />
     <style>
       :root {
         --font-pixel: "Press Start 2P", "Courier New", "PingFang SC", "Microsoft YaHei", monospace;
@@ -9101,9 +9102,50 @@
 
       function setNftImageSource(imageNode, card) {
         if (!imageNode || !card) return;
+        imageNode.decoding = "async";
         imageNode.src = card.image;
         imageNode.dataset.nftSrcs = JSON.stringify(card.imageCandidates || [card.image]);
         imageNode.dataset.nftSrcIndex = "0";
+      }
+
+      function waitForTimeout(ms) {
+        return new Promise((resolve) => window.setTimeout(resolve, ms));
+      }
+
+      function preloadNftCardImage(card, timeoutMs = 1800) {
+        const sources = card?.imageCandidates?.length ? card.imageCandidates : card?.image ? [card.image] : [];
+        if (!sources.length) return Promise.resolve(false);
+        return new Promise((resolve) => {
+          let sourceIndex = 0;
+          let finished = false;
+          const finish = (loaded) => {
+            if (finished) return;
+            finished = true;
+            resolve(loaded);
+          };
+          const loadNext = () => {
+            if (finished) return;
+            const source = sources[sourceIndex];
+            sourceIndex += 1;
+            if (!source) {
+              finish(false);
+              return;
+            }
+            const image = new Image();
+            image.decoding = "async";
+            image.onload = () => {
+              if (typeof image.decode === "function") {
+                image.decode().then(() => finish(true)).catch(() => finish(true));
+                return;
+              }
+              finish(true);
+            };
+            image.onerror = loadNext;
+            image.src = source;
+          };
+          window.setTimeout(() => finish(false), timeoutMs);
+          loadNext();
+        });
       }
 
       function cardNumberFromFile(fileName, fallbackIndex) {
@@ -9169,6 +9211,7 @@
       let marketVisibleLimit = MARKET_PAGE_SIZE;
       let marketRerenderTimer = 0;
       let marketRenderToken = 0;
+      let currentSummonImageReady = Promise.resolve(false);
       const unavailableNftCards = new Set();
 
       function nftCardKey(card) {
@@ -10146,8 +10189,8 @@
       }
 
       function marketCardMarkup(card, originalIndex, visibleIndex) {
-        const loadingMode = visibleIndex < 12 ? "eager" : "lazy";
-        const fetchPriority = visibleIndex < 12 ? "high" : "low";
+        const loadingMode = visibleIndex < 8 ? "eager" : "lazy";
+        const fetchPriority = visibleIndex < 8 ? "high" : "low";
         return `
           <article class="nft-card-slot pixel-panel pixel-wood hover-lift is-loading ${visibleIndex === 0 ? "is-featured" : ""}" data-nft-card-key="${escapeAttribute(nftCardKey(card))}" data-nft-card-index="${originalIndex}">
             <div class="nft-card-head pixel-font">
@@ -10207,7 +10250,7 @@
         } else {
           const renderBatch = (start = 0) => {
             if (renderToken !== marketRenderToken) return;
-            const batchSize = start === 0 ? 12 : 8;
+            const batchSize = start === 0 ? 8 : 6;
             const batch = renderedCards.slice(start, start + batchSize);
             if (!batch.length) return;
             grid.insertAdjacentHTML(
@@ -10438,7 +10481,7 @@
                     .map(
                       (card, index) => `
                         <span class="summon-preview-card" style="--tilt:${index === 0 ? -7 : index === 1 ? 0 : 7}deg">
-                          <img ${nftImageAttributes(card, "")} alt="${card.name} preview" loading="lazy" />
+                          <img ${nftImageAttributes(card, "")} alt="${card.name} preview" loading="lazy" decoding="async" />
                         </span>
                       `
                     )
@@ -10461,7 +10504,7 @@
                   <div id="summonCardRarity" class="summon-card-rarity pixel-font ${rarityClass(currentSummonCard.rarity)}">${currentSummonCard.rarity}</div>
                   <div class="summon-card-art">
                     <div id="summonCardAura" class="summon-card-aura ${rarityClass(currentSummonCard.rarity)}" aria-hidden="true"></div>
-                    <img id="summonCardImage" ${nftImageAttributes(currentSummonCard, "summon-card-image")} alt="${currentSummonCard.name} NFT card" />
+                    <img id="summonCardImage" ${nftImageAttributes(currentSummonCard, "summon-card-image")} alt="${currentSummonCard.name} NFT card" loading="eager" decoding="async" fetchpriority="high" />
                   </div>
                   <div class="summon-card-name-row">
                     <div class="summon-card-title-row">
@@ -10589,6 +10632,7 @@
           setOwnedNftId(currentSummonCard.id);
         }
         applySummonCard(currentSummonCard, currentSummonOwned);
+        currentSummonImageReady = preloadNftCardImage(currentSummonCard);
         incrementDailySummonOpened();
         updateSummonLimitInfo();
         machine.classList.remove("is-summoning", "is-paid", "is-revealed");
@@ -10612,7 +10656,7 @@
         }, 560);
       }
 
-      function flipSummonCard() {
+      async function flipSummonCard() {
         const machine = document.getElementById("summonMachine");
         const statusNode = document.getElementById("summonStatus");
         const dropNode = document.getElementById("summonDrop");
@@ -10626,6 +10670,7 @@
         statusNode.textContent = "REVEALING!";
         dropNode.textContent = "HOLO SIGNAL LOCKED";
         if (hintNode) hintNode.textContent = "CARD FRAME SYNCING";
+        await Promise.race([currentSummonImageReady, waitForTimeout(700)]);
 
         window.setTimeout(() => {
           machine.classList.remove("is-revealing");
