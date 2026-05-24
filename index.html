@@ -4218,6 +4218,11 @@
         transform: rotate(-45deg);
       }
 
+      .type-flying::before {
+        color: #f8fdff;
+        clip-path: polygon(8% 58%, 44% 20%, 92% 8%, 66% 48%, 96% 46%, 58% 70%, 24% 92%);
+      }
+
       .type-normal::before {
         color: #fff5da;
         border-radius: 50%;
@@ -4519,6 +4524,11 @@
 
       .type-water {
         background: var(--blue);
+      }
+
+      .type-flying {
+        background: #74b9e6;
+        color: #103c5a;
       }
 
       .type-normal {
@@ -8662,7 +8672,7 @@
 
           <button class="pixel-button wide-button pixel-font" type="button" data-page="add-monster">
             <img class="sprite-img small" src="https://img.pokemondb.net/sprites/black-white/normal/pikachu.png" alt="" />
-            Add Astramon
+            Open Card
           </button>
         </aside>
 
@@ -8927,7 +8937,7 @@
           desc: "Shiny full-art fire card with an overwhelming presence",
           img: "https://img.pokemondb.net/sprites/black-white/shiny/charizard.png",
           types: ["Fire", "Flying"],
-          typeClasses: ["type-fire", "type-water"],
+          typeClasses: ["type-fire", "type-flying"],
           height: "1.7 m",
           weight: "90.5 kg",
           stats: [78, 84, 78, 109, 85, 100],
@@ -10909,8 +10919,8 @@
               <div class="empty-pikachu">
                 <img src="https://img.pokemondb.net/sprites/black-white/normal/pikachu.png" alt="Pikachu" />
               </div>
-              <strong class="pixel-font">Go catch one!</strong>
-              <button class="pixel-button wide-button pixel-font" type="button" data-page="add-monster">Start Catching</button>
+              <strong class="pixel-font">Open a card!</strong>
+              <button class="pixel-button wide-button pixel-font" type="button" data-page="add-monster">Card Summon</button>
             </div>
           `;
           list.querySelector("[data-page]").addEventListener("click", (event) => {
