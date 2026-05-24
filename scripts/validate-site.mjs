@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
+import { execFileSync } from "node:child_process";
 
 const root = process.cwd();
 const indexPath = path.join(root, "index.html");
@@ -81,6 +82,51 @@ for (const file of textFilesToCheck) {
   if (fs.existsSync(filePath) && hanPattern.test(fs.readFileSync(filePath, "utf8"))) {
     throw new Error(`Non-English Han characters found in ${file}.`);
   }
+}
+
+const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+if (packageJson.private !== true || packageJson.license !== "UNLICENSED") {
+  throw new Error("Package metadata must remain private and unlicensed for public package registries.");
+}
+
+if (!/Proprietary License/i.test(fs.readFileSync(path.join(root, "LICENSE"), "utf8"))) {
+  throw new Error("LICENSE must remain proprietary.");
+}
+
+const trackedFiles = execFileSync("git", ["ls-files"], { cwd: root, encoding: "utf8" })
+  .split(/\r?\n/)
+  .filter(Boolean);
+
+const highConfidenceSecretPatterns = [
+  /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
+  /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{36,}\b/,
+  /\bgithub_pat_[A-Za-z0-9_]{40,}\b/,
+  /\bsk_live_[A-Za-z0-9]{24,}\b/,
+  /\bpk_live_[A-Za-z0-9]{24,}\b/,
+  /\bxox[baprs]-[A-Za-z0-9-]{20,}\b/,
+  /\bAIza[0-9A-Za-z_-]{35}\b/,
+  /\b(?:mnemonic|seed phrase)\s*[:=]\s*["'][^"']{20,}["']/i,
+  /\b(?:password|passwd|private_key|client_secret|api_key)\s*[:=]\s*["'][^"']{8,}["']/i
+];
+
+for (const file of trackedFiles) {
+  const filePath = path.join(root, file);
+  if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) continue;
+  const buffer = fs.readFileSync(filePath);
+  if (buffer.includes(0)) continue;
+  const content = buffer.toString("utf8");
+  if (hanPattern.test(content)) {
+    throw new Error(`Non-English Han characters found in tracked file ${file}.`);
+  }
+  const hasSecretLikeContent = highConfidenceSecretPatterns.some((pattern) => pattern.test(content));
+  if (hasSecretLikeContent) {
+    throw new Error(`Potential secret found in tracked file ${file}.`);
+  }
+}
+
+const commitMessages = execFileSync("git", ["log", "--format=%B"], { cwd: root, encoding: "utf8" });
+if (hanPattern.test(commitMessages)) {
+  throw new Error("Non-English Han characters found in Git commit messages.");
 }
 
 console.log("Astramon validation passed.");
