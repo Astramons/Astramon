@@ -109,6 +109,16 @@ const highConfidenceSecretPatterns = [
   /\b(?:password|passwd|private_key|client_secret|api_key)\s*[:=]\s*["'][^"']{8,}["']/i
 ];
 
+const privateMetadataPatterns = [
+  { label: "macOS home directory", pattern: /\/Users\/[A-Za-z0-9._-]+\// },
+  { label: "Linux home directory", pattern: /\/home\/[A-Za-z0-9._-]+\// },
+  { label: "Windows user directory", pattern: /[A-Za-z]:\\Users\\[A-Za-z0-9._-]+\\/ },
+  { label: "local machine username", pattern: /\bwuwu\b/i },
+  { label: "local machine hostname", pattern: /\bwuwudeMac\b/i },
+  { label: "local network hostname", pattern: /(^|[^\w.-])[A-Za-z0-9-]+\.local(?=$|[\s/:])/im },
+  { label: "local sugar log metadata", pattern: /\bsugar\.log\b/i }
+];
+
 for (const file of trackedFiles) {
   const filePath = path.join(root, file);
   if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) continue;
@@ -121,6 +131,10 @@ for (const file of trackedFiles) {
   const hasSecretLikeContent = highConfidenceSecretPatterns.some((pattern) => pattern.test(content));
   if (hasSecretLikeContent) {
     throw new Error(`Potential secret found in tracked file ${file}.`);
+  }
+  const privateMetadataMatch = privateMetadataPatterns.find(({ pattern }) => pattern.test(content));
+  if (privateMetadataMatch) {
+    throw new Error(`Private ${privateMetadataMatch.label} found in tracked file ${file}.`);
   }
 }
 
