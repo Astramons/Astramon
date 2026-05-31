@@ -8774,6 +8774,7 @@
         </div>
         <div class="wallet-modal-actions">
           <button class="pixel-button wide-button pixel-font" type="button" data-wallet-action="connect">Connect Solana Wallet</button>
+          <button class="pixel-button wide-button pixel-font" type="button" data-wallet-action="disconnect">Disconnect Wallet</button>
           <button class="pixel-button wide-button pixel-font" type="button" data-wallet-close>Cancel</button>
         </div>
       </div>
@@ -9419,11 +9420,20 @@
         if (statusNode) statusNode.textContent = message;
       }
 
+      function updateWalletModalActions() {
+        const connectAction = document.querySelector("[data-wallet-action='connect']");
+        const disconnectAction = document.querySelector("[data-wallet-action='disconnect']");
+        const isConnected = Boolean(walletState.connected && walletState.address);
+        if (connectAction) connectAction.hidden = isConnected;
+        if (disconnectAction) disconnectAction.hidden = !isConnected;
+      }
+
       function openWalletModal(redirect = true) {
         pendingWalletRedirect = redirect;
         const modal = document.getElementById("walletModal");
         if (!modal) return;
         setWalletModalStatus(walletState.connected && walletState.address ? `Connected ${shortAddress(walletState.address)}` : "Waiting for a Solana wallet.");
+        updateWalletModalActions();
         modal.hidden = false;
       }
 
@@ -9442,6 +9452,24 @@
 
       function requireAstraConfig() {
         return Boolean(astraTokenMint && astraTreasuryTokenAccount);
+      }
+
+      function clearWalletState() {
+        safeSetStorage("astraWalletConnected", "false");
+        safeSetStorage("astraWalletAddress", "");
+        safeSetStorage("astraWalletChainId", "");
+        safeSetStorage("astraWalletBalance", "0");
+        safeSetStorage("astraWalletUserDisconnected", "true");
+        walletState = {
+          ...walletState,
+          connected: false,
+          address: "",
+          chainId: "",
+          balance: 0
+        };
+        renderWallet(false);
+        updateSummonLimitInfo();
+        updateWalletModalActions();
       }
 
       async function readAstraBalance(address = walletState.address) {
@@ -9590,19 +9618,11 @@
         walletProviderEventsBound = true;
         provider.on("accountChanged", async (publicKeyValue) => {
           if (!publicKeyValue) {
-            safeSetStorage("astraWalletConnected", "false");
-            safeSetStorage("astraWalletAddress", "");
-            safeSetStorage("astraWalletBalance", "0");
-            walletState = {
-              ...walletState,
-              connected: false,
-              address: "",
-              balance: 0
-            };
-            renderWallet();
+            clearWalletState();
             return;
           }
           const address = publicKeyValue.toString();
+          safeSetStorage("astraWalletUserDisconnected", "false");
           safeSetStorage("astraWalletAddress", address);
           walletState = {
             ...walletState,
@@ -10848,6 +10868,7 @@
         };
         const savedAddress = safeGetStorage("astraWalletAddress") || "";
         const savedConnected = safeGetStorage("astraWalletConnected") === "true" && Boolean(savedAddress);
+        const userDisconnected = safeGetStorage("astraWalletUserDisconnected") === "true";
         const provider = getSolanaProvider();
         if (provider) bindWalletProviderEvents(provider);
         walletState = {
@@ -10857,7 +10878,7 @@
           chainId: safeGetStorage("astraWalletChainId") || "solana-mainnet",
           balance: safeGetStorage("astraWalletBalance") !== null && savedAddress ? Number(safeGetStorage("astraWalletBalance")) : 0
         };
-        if (provider?.connect && !savedAddress) {
+        if (provider?.connect && !savedAddress && !userDisconnected) {
           try {
             const response = await provider.connect({ onlyIfTrusted: true });
             const address = response?.publicKey?.toString() || provider.publicKey?.toString() || "";
@@ -10871,6 +10892,7 @@
               safeSetStorage("astraWalletConnected", "true");
               safeSetStorage("astraWalletAddress", address);
               safeSetStorage("astraWalletChainId", "solana-mainnet");
+              safeSetStorage("astraWalletUserDisconnected", "false");
             }
           } catch (error) {
             walletState = { ...walletState, connected: false };
@@ -10939,6 +10961,7 @@
         setWalletModalStatus("Reading live Astra balance...");
         const balance = await readAstraBalance(address).catch(() => 0);
 
+        safeSetStorage("astraWalletUserDisconnected", "false");
         safeSetStorage("astraWalletConnected", "true");
         safeSetStorage("astraWalletAddress", address);
         safeSetStorage("astraWalletChainId", chainId);
@@ -10956,6 +10979,19 @@
         if (shouldRedirect || pendingWalletRedirect) {
           goToPage("wallet");
         }
+      }
+
+      async function disconnectWallet() {
+        const provider = getSolanaProvider();
+        if (provider && typeof provider.disconnect === "function") {
+          await provider.disconnect().catch(() => {});
+        }
+        clearWalletState();
+        setWalletModalStatus("Wallet disconnected.");
+        window.setTimeout(closeWalletModal, 450);
+        const currentPage = getCurrentPage();
+        if (currentPage === "wallet") renderRoute();
+        if (currentPage === "add-monster") renderPackPage();
       }
 
       function spriteImg(item, size = "") {
@@ -11098,6 +11134,9 @@
         if (!action) return;
         if (action.dataset.walletAction === "connect") {
           connectWallet(pendingWalletRedirect);
+        }
+        if (action.dataset.walletAction === "disconnect") {
+          disconnectWallet();
         }
       });
 
