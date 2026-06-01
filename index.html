@@ -8782,10 +8782,24 @@
       </div>
     </div>
 
+    <script>
+      window.__astramonScriptErrors = [];
+      window.addEventListener("error", (event) => {
+        window.__astramonScriptErrors.push(event.message || "Script error");
+      });
+    </script>
     <script src="./astramon.config.js"></script>
+    <script src="./assets/astramon-mint.js"></script>
     <script src="https://unpkg.com/@solana/web3.js@1.95.4/lib/index.iife.min.js"></script>
     <script>
-      const runtimeConfig = window.ASTRAMON_CONFIG || {};
+      const defaultRuntimeConfig = {
+        astraTokenMint: "12xT3RVaCgxDn8vGYFtir6UPwk2pxSDHy2PowwHapump",
+        astraTreasuryTokenAccount: "7bLFH59XCdgog1xirvGYvk5Keu8tUZ1CeK1gbBas82Hj",
+        candyMachineId: "3hMQL8H2eSHL31p7RRBU3TKzq7D7XYqTFHYMzZ5rU6nZ",
+        candyGuardId: "EMiifYYaXSY3nu1dbFarDicZGqzQEDrDDNwVjq5ueX8h",
+        collectionMint: "FGv44b6xMt79KorMN7j4UQhiDLhWz8cNQAdo1Bxufq5d"
+      };
+      const runtimeConfig = { ...defaultRuntimeConfig, ...(window.ASTRAMON_CONFIG || {}) };
       const readConfigString = (key, fallback = "") => {
         const value = runtimeConfig[key];
         return typeof value === "string" && value.trim() ? value.trim() : fallback;
@@ -8793,6 +8807,10 @@
       const solanaRpcUrl = readConfigString("solanaRpcUrl", "https://api.mainnet-beta.solana.com");
       const astraTokenMint = readConfigString("astraTokenMint");
       const astraTreasuryTokenAccount = readConfigString("astraTreasuryTokenAccount");
+      const candyMachineId = readConfigString("candyMachineId", defaultRuntimeConfig.candyMachineId);
+      const candyGuardId = readConfigString("candyGuardId", defaultRuntimeConfig.candyGuardId);
+      const collectionMint = readConfigString("collectionMint", defaultRuntimeConfig.collectionMint);
+      const launchMyNftUrl = readConfigString("launchMyNftUrl", "https://launchmynft.io/");
       const astraTokenDecimals = Number.isFinite(Number(runtimeConfig.astraTokenDecimals)) ? Number(runtimeConfig.astraTokenDecimals) : 6;
       const SOLANA_TOKEN_PROGRAM_ID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
       const SOLANA_ASSOCIATED_TOKEN_PROGRAM_ID = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL";
@@ -9334,6 +9352,30 @@
         return `<small class="astra-cost"><span class="astra-icon">A</span><span class="astra-amount">${formatAstra(amount)}</span><span class="astra-symbol">${currency}</span></small>`;
       }
 
+      function solscanTransactionUrl(signature) {
+        return signature ? `https://solscan.io/tx/${encodeURIComponent(signature)}` : "";
+      }
+
+      function solscanAddressUrl(address) {
+        return address ? `https://solscan.io/account/${encodeURIComponent(address)}` : "";
+      }
+
+      function postPaymentLinksMarkup(signature = lastAstraPaymentSignature, nftMint = lastMintedNftAddress) {
+        const links = [];
+        const txUrl = solscanTransactionUrl(signature);
+        if (txUrl) {
+          links.push(`<a href="${txUrl}" target="_blank" rel="noopener noreferrer">VIEW MINT</a>`);
+        }
+        const nftUrl = solscanAddressUrl(nftMint);
+        if (nftUrl) {
+          links.push(`<a href="${nftUrl}" target="_blank" rel="noopener noreferrer">NFT</a>`);
+        }
+        if (launchMyNftUrl) {
+          links.push(`<a href="${escapeAttribute(launchMyNftUrl)}" target="_blank" rel="noopener noreferrer">LAUNCHMYNFT</a>`);
+        }
+        return links.length ? links.join(" · ") : "CLICK THE CARD TO FLIP";
+      }
+
       function setSummonLoadingVisible(isVisible) {
         const overlay = document.getElementById("summonLoadingOverlay");
         if (!overlay) return;
@@ -9388,6 +9430,8 @@
       let summonAudioContext = null;
       let pendingWalletRedirect = true;
       let walletProviderEventsBound = false;
+      let lastAstraPaymentSignature = "";
+      let lastMintedNftAddress = "";
 
       function safeGetStorage(key) {
         try {
@@ -9454,6 +9498,10 @@
 
       function requireAstraConfig() {
         return Boolean(astraTokenMint && astraTreasuryTokenAccount);
+      }
+
+      function requireCandyMachineConfig() {
+        return Boolean(requireAstraConfig() && candyMachineId && candyGuardId && collectionMint);
       }
 
       function clearWalletState() {
@@ -9613,6 +9661,33 @@
         await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed");
         await refreshAstraBalance();
         return signature;
+      }
+
+      async function mintAstramonPack(onStatus) {
+        const provider = getSolanaProvider();
+        if (!provider) throw new Error("Connect wallet first.");
+        if (!window.AstramonCandyMint?.mintAstramonNft) {
+          throw new Error("Candy Machine mint library is not loaded.");
+        }
+        if (!provider.publicKey && typeof provider.connect === "function") {
+          await provider.connect();
+        }
+        if (!provider.publicKey) throw new Error("Connect wallet first.");
+        if (!requireCandyMachineConfig()) throw new Error("Candy Machine config is incomplete.");
+        const result = await window.AstramonCandyMint.mintAstramonNft({
+          provider,
+          config: {
+            solanaRpcUrl,
+            astraTokenMint,
+            astraTreasuryTokenAccount,
+            candyMachineId,
+            candyGuardId,
+            collectionMint
+          },
+          onStatus
+        });
+        await refreshAstraBalance().catch(() => 0);
+        return result;
       }
 
       function bindWalletProviderEvents(provider) {
@@ -10446,7 +10521,7 @@
         const summonLimitReached = isDailySummonLimitReached();
         const summonStatusText = summonLimitReached ? "DAILY LIMIT" : result;
         const summonDropText = summonLimitReached ? "10/10 OPENED" : "NEW DROP!";
-        const summonHintText = summonLimitReached ? "COME BACK TOMORROW" : "PAY 100,000 Astra TO GET CARD BACK";
+        const summonHintText = summonLimitReached ? "COME BACK TOMORROW" : "MINT ON SOLANA FOR 100,000 Astra";
 
         pageView.innerHTML = `
           <section class="summon-view">
@@ -10606,16 +10681,29 @@
           triggerSummonFeedback("error");
           statusNode.textContent = "CONNECT WALLET";
           dropNode.textContent = "Astra BALANCE REQUIRED";
-          if (hintNode) hintNode.textContent = "CONNECT WALLET TO PAY";
-          openWalletModal(false);
-          return;
+          if (hintNode) hintNode.textContent = "APPROVE WALLET CONNECTION";
+          actionNode.disabled = true;
+          const connected = await connectWallet(false);
+          if (!connected || !walletState.connected || !walletState.address) {
+            actionNode.disabled = false;
+            openWalletModal(false);
+            const provider = getSolanaProvider();
+            if (!provider) {
+              setWalletModalStatus("No Solana wallet detected in this browser. Open this page in Phantom, Backpack, OKX Wallet, or a browser with a Solana wallet extension.");
+              if (hintNode) hintNode.textContent = "NO SOLANA WALLET DETECTED";
+            } else {
+              setWalletModalStatus("Wallet connection is required before minting.");
+              if (hintNode) hintNode.textContent = "CONNECT WALLET TO MINT";
+            }
+            return;
+          }
         }
 
-        if (!requireAstraConfig()) {
+        if (!requireCandyMachineConfig()) {
           triggerSummonFeedback("error");
           statusNode.textContent = "CONFIG REQUIRED";
-          dropNode.textContent = "SET Astra TOKEN MINT";
-          if (hintNode) hintNode.textContent = "ADD RUNTIME WALLET CONFIG";
+          dropNode.textContent = "SET CANDY MACHINE";
+          if (hintNode) hintNode.textContent = "ADD RUNTIME MINT CONFIG";
           return;
         }
 
@@ -10634,15 +10722,20 @@
           return;
         }
 
-        statusNode.textContent = "PAYMENT";
+        statusNode.textContent = "MINT";
         dropNode.textContent = `${formatAstra(PACK_COST)} Astra`;
         if (hintNode) hintNode.textContent = "CONFIRM IN WALLET";
+        let mintResult = null;
         try {
-          await payAstraForPack();
+          mintResult = await mintAstramonPack((message) => {
+            if (hintNode) hintNode.textContent = String(message || "CONFIRM IN WALLET").toUpperCase();
+          });
+          lastAstraPaymentSignature = mintResult.signature || "";
+          lastMintedNftAddress = mintResult.nftMint || "";
         } catch (error) {
           triggerSummonFeedback("error");
-          statusNode.textContent = "PAYMENT FAILED";
-          dropNode.textContent = "NO NFT OPENED";
+          statusNode.textContent = "MINT FAILED";
+          dropNode.textContent = "NO NFT MINTED";
           if (hintNode) hintNode.textContent = error?.message || "TRANSACTION CANCELED";
           actionNode.disabled = false;
           return;
@@ -10674,8 +10767,8 @@
           setSummonLoadingVisible(false);
           statusNode.textContent = "CARD BACK READY";
           dropNode.textContent = "TAP TO REVEAL";
-          if (hintNode) hintNode.textContent = "CLICK THE CARD TO FLIP";
-          actionNode.innerHTML = `PAID${packCostMarkup(PACK_COST)}`;
+          if (hintNode) hintNode.innerHTML = postPaymentLinksMarkup(mintResult?.signature, mintResult?.nftMint);
+          actionNode.innerHTML = `MINTED${packCostMarkup(PACK_COST)}`;
           actionNode.disabled = true;
         }, 560);
       }
@@ -10708,7 +10801,7 @@
           applySummonCard(currentSummonCard, wasOwnedBeforeReveal);
           statusNode.textContent = `${currentSummonCard.rarity}!`;
           dropNode.textContent = `${currentSummonCard.name.toUpperCase()} #${currentSummonCard.id}`;
-          if (hintNode) hintNode.textContent = "OPEN AGAIN FOR NEXT CARD";
+          if (hintNode) hintNode.innerHTML = `OPEN AGAIN · ${postPaymentLinksMarkup()}`;
           updateSummonLimitInfo();
           if (actionNode) {
             updateSummonActionButton();
@@ -10940,7 +11033,7 @@
         const provider = getSolanaProvider();
         if (!provider || typeof provider.connect !== "function") {
           setWalletModalStatus("No Solana wallet detected. Please install Phantom, Backpack, OKX Wallet, or another Solana wallet.");
-          return;
+          return false;
         }
         bindWalletProviderEvents(provider);
 
@@ -10950,13 +11043,13 @@
           response = await provider.connect();
         } catch (error) {
           setWalletModalStatus("Wallet authorization was canceled or failed.");
-          return;
+          return false;
         }
 
         const address = response?.publicKey?.toString() || provider.publicKey?.toString() || "";
         if (!address) {
           setWalletModalStatus("No wallet address was returned.");
-          return;
+          return false;
         }
 
         const chainId = "solana-mainnet";
@@ -10981,6 +11074,7 @@
         if (shouldRedirect || pendingWalletRedirect) {
           goToPage("wallet");
         }
+        return true;
       }
 
       async function disconnectWallet() {

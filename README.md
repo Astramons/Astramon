@@ -42,18 +42,18 @@ cp astramon.config.example.js astramon.config.js
 
 `astramon.config.js` is ignored by Git.
 
-GitHub Pages does not require additional wallet secrets. If a production wallet flow is needed, provide `astramon.config.js` through your private deployment layer or backend before the page loads. Without runtime wallet configuration, wallet connection can open but live token reads and Astra pack payment are intentionally blocked.
+GitHub Pages does not require additional wallet secrets. If a production wallet flow is needed, provide `astramon.config.js` through your private deployment layer or backend before the page loads. Without runtime wallet configuration, wallet connection can open but live token reads and Candy Machine minting are intentionally blocked.
 
 ## NFT Minting And Trading
 
-The current site handles wallet connection, Astra balance checks, and Astra payment before revealing a card. For a real tradable Solana NFT mint that appears on Magic Eden, connect the frontend to a Metaplex Candy Machine or another on-chain mint program.
+The current site handles wallet connection, Astra balance checks, and Metaplex Candy Machine minting before revealing a card.
 
-Recommended production path:
+Current production path:
 
 1. Create the NFT collection and metadata with Metaplex.
-2. Configure Candy Machine guards, including a token payment guard for Astra.
-3. Set the Astra treasury token account in the production configuration.
-4. Replace the frontend reveal-only flow with a signed mint transaction.
+2. Configure Candy Machine guards, including a Token-2022 payment guard for Astra.
+3. Set the Astra treasury token account and Candy Machine IDs in the production configuration.
+4. Build `assets/astramon-mint.js` with `npm run build:mint`.
 5. Verify collection metadata so minted NFTs can trade on [Magic Eden Solana](https://magiceden.io/solana).
 
 See [docs/WALLET_INTEGRATION.md](docs/WALLET_INTEGRATION.md) for details.

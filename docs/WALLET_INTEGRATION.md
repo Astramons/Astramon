@@ -45,7 +45,7 @@ Recommended production setup:
 3. Configure a Candy Machine.
 4. Add an Astra token payment guard.
 5. Set the destination token account to the project-controlled Astra treasury token account.
-6. Update the frontend to create and send the Candy Machine mint transaction.
+6. Build `assets/astramon-mint.js` with `npm run build:mint` so the frontend can create and send the Candy Machine mint transaction.
 7. Verify the collection so minted NFTs can trade on [Magic Eden Solana](https://magiceden.io/solana).
 
 ## Security Checklist
