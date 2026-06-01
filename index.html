@@ -10640,6 +10640,7 @@
               <div class="summon-footer">
                 <div class="summon-limit-line pixel-font">
                   <span id="summonBalanceInfo" class="summon-limit-pill">Astra BALANCE: <strong>${walletState.connected ? formatAstra(walletState.balance) : "CONNECT"}</strong></span>
+                  <button class="summon-limit-pill summon-refresh-balance pixel-font" type="button" data-refresh-astra-balance>REFRESH BALANCE</button>
                   <span id="summonOwnedInfo" class="summon-limit-pill">OWNED: <strong>${ownedNftCount()}/${TOTAL_NFT_CARDS}</strong></span>
                   <span id="summonTodayInfo" class="summon-limit-pill">TODAY OPENED: <strong>${Math.min(getDailySummonOpened(), DAILY_PACK_LIMIT)}/${DAILY_PACK_LIMIT}</strong></span>
                 </div>
@@ -10667,6 +10668,22 @@
           openWalletModal(false);
           const status = document.getElementById("summonStatus");
           if (status) status.textContent = "CONNECTING...";
+        });
+        pageView.querySelector("[data-refresh-astra-balance]")?.addEventListener("click", async (event) => {
+          event.stopPropagation();
+          const status = document.getElementById("summonStatus");
+          const hint = document.getElementById("summonHint");
+          if (!walletState.connected || !walletState.address) {
+            if (status) status.textContent = "CONNECT WALLET";
+            if (hint) hint.textContent = "CONNECT WALLET TO READ BALANCE";
+            openWalletModal(false);
+            return;
+          }
+          if (status) status.textContent = "REFRESHING BALANCE";
+          if (hint) hint.textContent = "READING TOKEN-2022 ASTRA";
+          const balance = await refreshAstraBalance().catch(() => 0);
+          if (status) status.textContent = balance > 0 ? "BALANCE UPDATED" : "NO ASTRA FOUND";
+          if (hint) hint.textContent = `${formatAstra(balance)} Astra DETECTED`;
         });
         currentSummonOwned = hasOwnedNftId(currentSummonCard.id);
         applySummonCard(currentSummonCard, currentSummonOwned);
@@ -10974,10 +10991,11 @@
           address: "",
           chainId: ""
         };
-        const savedAddress = safeGetStorage("astraWalletAddress") || "";
+        const provider = getSolanaProvider();
+        const providerAddress = provider?.publicKey?.toString() || "";
+        const savedAddress = providerAddress || safeGetStorage("astraWalletAddress") || "";
         const savedConnected = safeGetStorage("astraWalletConnected") === "true" && Boolean(savedAddress);
         const userDisconnected = safeGetStorage("astraWalletUserDisconnected") === "true";
-        const provider = getSolanaProvider();
         if (provider) bindWalletProviderEvents(provider);
         walletState = {
           ...fallback,
@@ -10986,7 +11004,7 @@
           chainId: safeGetStorage("astraWalletChainId") || "solana-mainnet",
           balance: safeGetStorage("astraWalletBalance") !== null && savedAddress ? Number(safeGetStorage("astraWalletBalance")) : 0
         };
-        if (provider?.connect && !savedAddress && !userDisconnected) {
+        if (provider?.connect && !providerAddress && !savedAddress && !userDisconnected) {
           try {
             const response = await provider.connect({ onlyIfTrusted: true });
             const address = response?.publicKey?.toString() || provider.publicKey?.toString() || "";
@@ -11005,6 +11023,19 @@
           } catch (error) {
             walletState = { ...walletState, connected: false };
           }
+        }
+        if (providerAddress && providerAddress !== safeGetStorage("astraWalletAddress")) {
+          safeSetStorage("astraWalletConnected", "true");
+          safeSetStorage("astraWalletAddress", providerAddress);
+          safeSetStorage("astraWalletChainId", "solana-mainnet");
+          safeSetStorage("astraWalletUserDisconnected", "false");
+          walletState = {
+            ...walletState,
+            connected: true,
+            address: providerAddress,
+            chainId: "solana-mainnet",
+            balance: 0
+          };
         }
         if (walletState.connected && walletState.address && astraTokenMint) {
           await refreshAstraBalance().catch(() => 0);
