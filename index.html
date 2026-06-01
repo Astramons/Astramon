@@ -8789,8 +8789,8 @@
       });
     </script>
     <script src="./astramon.config.js"></script>
-    <script src="./assets/astramon-mint.js"></script>
     <script src="https://unpkg.com/@solana/web3.js@1.95.4/lib/index.iife.min.js"></script>
+    <script src="./assets/astramon-mint.js"></script>
     <script>
       const defaultRuntimeConfig = {
         astraTokenMint: "12xT3RVaCgxDn8vGYFtir6UPwk2pxSDHy2PowwHapump",
@@ -9495,7 +9495,14 @@
       }
 
       function getSolanaProvider() {
-        return window?.phantom?.solana || window?.solana || null;
+        const candidates = [
+          window?.okxwallet?.solana,
+          window?.phantom?.solana,
+          window?.backpack?.solana,
+          window?.solflare,
+          window?.solana
+        ];
+        return candidates.find((provider) => provider && typeof provider.connect === "function") || null;
       }
 
       function getSolanaWeb3() {
