@@ -9586,7 +9586,7 @@
 
       async function associatedTokenAddress(mint, owner) {
         const web3 = getSolanaWeb3();
-        const tokenProgram = publicKey(SOLANA_TOKEN_PROGRAM_ID);
+        const tokenProgram = publicKey(SOLANA_TOKEN_2022_PROGRAM_ID);
         const associatedProgram = publicKey(SOLANA_ASSOCIATED_TOKEN_PROGRAM_ID);
         const [address] = await web3.PublicKey.findProgramAddress(
           [owner.toBuffer(), tokenProgram.toBuffer(), mint.toBuffer()],
@@ -9615,7 +9615,7 @@
             { pubkey: owner, isSigner: false, isWritable: false },
             { pubkey: mint, isSigner: false, isWritable: false },
             { pubkey: web3.SystemProgram.programId, isSigner: false, isWritable: false },
-            { pubkey: publicKey(SOLANA_TOKEN_PROGRAM_ID), isSigner: false, isWritable: false },
+            { pubkey: publicKey(SOLANA_TOKEN_2022_PROGRAM_ID), isSigner: false, isWritable: false },
             { pubkey: web3.SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false }
           ],
           data: new Uint8Array()
@@ -9629,7 +9629,7 @@
         data.set(u64LittleEndian(amount), 1);
         data[9] = decimals;
         return new web3.TransactionInstruction({
-          programId: publicKey(SOLANA_TOKEN_PROGRAM_ID),
+          programId: publicKey(SOLANA_TOKEN_2022_PROGRAM_ID),
           keys: [
             { pubkey: source, isSigner: false, isWritable: true },
             { pubkey: mint, isSigner: false, isWritable: false },
@@ -10746,7 +10746,7 @@
         if (liveBalance < PACK_COST) {
           triggerSummonFeedback("error");
           statusNode.textContent = "NOT ENOUGH Astra";
-          dropNode.textContent = `${formatAstra(liveBalance)} Astra LEFT`;
+          dropNode.textContent = `BALANCE: ${formatAstra(liveBalance)} Astra`;
           actionNode.disabled = false;
           if (hintNode) hintNode.textContent = `NEED ${formatAstra(PACK_COST)} Astra`;
           return;
