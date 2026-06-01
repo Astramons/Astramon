@@ -8804,7 +8804,12 @@
         const value = runtimeConfig[key];
         return typeof value === "string" && value.trim() ? value.trim() : fallback;
       };
-      const solanaRpcUrl = readConfigString("solanaRpcUrl", "https://api.mainnet-beta.solana.com");
+      const solanaRpcUrl = readConfigString("solanaRpcUrl", "https://solana-rpc.publicnode.com");
+      const solanaRpcUrls = uniqueList([
+        solanaRpcUrl,
+        "https://solana-rpc.publicnode.com",
+        "https://api.mainnet-beta.solana.com"
+      ]);
       const astraTokenMint = readConfigString("astraTokenMint");
       const astraTreasuryTokenAccount = readConfigString("astraTreasuryTokenAccount");
       const candyMachineId = readConfigString("candyMachineId", defaultRuntimeConfig.candyMachineId);
@@ -9526,22 +9531,33 @@
       async function readAstraBalance(address = walletState.address) {
         if (!address || !astraTokenMint) return 0;
         const readAccounts = async (filter) => {
-          const response = await fetch(solanaRpcUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              jsonrpc: "2.0",
-              id: "astramon-astra-balance",
-              method: "getTokenAccountsByOwner",
-              params: [
-                address,
-                filter,
-                { encoding: "jsonParsed", commitment: "confirmed" }
-              ]
-            })
-          });
-          const payload = await response.json();
-          return payload?.result?.value || [];
+          let lastError = null;
+          for (const rpcUrl of solanaRpcUrls) {
+            try {
+              const response = await fetch(rpcUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  jsonrpc: "2.0",
+                  id: "astramon-astra-balance",
+                  method: "getTokenAccountsByOwner",
+                  params: [
+                    address,
+                    filter,
+                    { encoding: "jsonParsed", commitment: "confirmed" }
+                  ]
+                })
+              });
+              const payload = await response.json();
+              if (!response.ok || payload?.error) {
+                throw new Error(payload?.error?.message || `RPC ${response.status}`);
+              }
+              return payload?.result?.value || [];
+            } catch (error) {
+              lastError = error;
+            }
+          }
+          throw lastError || new Error("Astra balance RPC failed.");
         };
 
         const token2022Accounts = await readAccounts({ programId: SOLANA_TOKEN_2022_PROGRAM_ID }).catch(() => []);

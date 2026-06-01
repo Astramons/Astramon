@@ -1,5 +1,5 @@
 window.ASTRAMON_CONFIG = {
-  solanaRpcUrl: "https://api.mainnet-beta.solana.com",
+  solanaRpcUrl: "https://solana-rpc.publicnode.com",
   astraTokenMint: "12xT3RVaCgxDn8vGYFtir6UPwk2pxSDHy2PowwHapump",
   astraTreasuryTokenAccount: "7bLFH59XCdgog1xirvGYvk5Keu8tUZ1CeK1gbBas82Hj",
   astraTokenDecimals: 6,
