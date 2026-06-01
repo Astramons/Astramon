@@ -8813,6 +8813,7 @@
       const launchMyNftUrl = readConfigString("launchMyNftUrl", "https://launchmynft.io/");
       const astraTokenDecimals = Number.isFinite(Number(runtimeConfig.astraTokenDecimals)) ? Number(runtimeConfig.astraTokenDecimals) : 6;
       const SOLANA_TOKEN_PROGRAM_ID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
+      const SOLANA_TOKEN_2022_PROGRAM_ID = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
       const SOLANA_ASSOCIATED_TOKEN_PROGRAM_ID = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL";
 
       const routePages = {
@@ -9524,23 +9525,35 @@
 
       async function readAstraBalance(address = walletState.address) {
         if (!address || !astraTokenMint) return 0;
-        const response = await fetch(solanaRpcUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            jsonrpc: "2.0",
-            id: "astramon-astra-balance",
-            method: "getTokenAccountsByOwner",
-            params: [
-              address,
-              { mint: astraTokenMint },
-              { encoding: "jsonParsed", commitment: "confirmed" }
-            ]
-          })
+        const readAccounts = async (filter) => {
+          const response = await fetch(solanaRpcUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              id: "astramon-astra-balance",
+              method: "getTokenAccountsByOwner",
+              params: [
+                address,
+                filter,
+                { encoding: "jsonParsed", commitment: "confirmed" }
+              ]
+            })
+          });
+          const payload = await response.json();
+          return payload?.result?.value || [];
+        };
+
+        const token2022Accounts = await readAccounts({ programId: SOLANA_TOKEN_2022_PROGRAM_ID }).catch(() => []);
+        const legacyAccounts = await readAccounts({ mint: astraTokenMint }).catch(() => []);
+        const accountsByPubkey = new Map();
+        [...token2022Accounts, ...legacyAccounts].forEach((account) => {
+          const info = account?.account?.data?.parsed?.info;
+          if (info?.mint === astraTokenMint) {
+            accountsByPubkey.set(account.pubkey || JSON.stringify(account), account);
+          }
         });
-        const payload = await response.json();
-        const accounts = payload?.result?.value || [];
-        return accounts.reduce((total, account) => {
+        return [...accountsByPubkey.values()].reduce((total, account) => {
           const amount = account?.account?.data?.parsed?.info?.tokenAmount?.uiAmount || 0;
           return total + Number(amount || 0);
         }, 0);
